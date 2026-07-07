@@ -26,11 +26,11 @@ declare class PaiementService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        clientId: number;
         status: import(".prisma/client").$Enums.CommandeStatus;
         total: number;
         montantPaye: number;
         statutPaiement: import(".prisma/client").$Enums.StatutPaiement;
+        clientId: number;
     }>;
     private calculerStatut;
     getDette(commandeId: number): Promise<{

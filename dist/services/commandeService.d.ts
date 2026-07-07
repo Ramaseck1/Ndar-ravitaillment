@@ -56,21 +56,21 @@ declare class CommandeService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        clientId: number;
         status: import(".prisma/client").$Enums.CommandeStatus;
         total: number;
         montantPaye: number;
         statutPaiement: import(".prisma/client").$Enums.StatutPaiement;
+        clientId: number;
     }>;
     livrer(id: number): Promise<{
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        clientId: number;
         status: import(".prisma/client").$Enums.CommandeStatus;
         total: number;
         montantPaye: number;
         statutPaiement: import(".prisma/client").$Enums.StatutPaiement;
+        clientId: number;
     }>;
     findAll(): Promise<({
         details: ({
@@ -129,11 +129,11 @@ declare class CommandeService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        clientId: number;
         status: import(".prisma/client").$Enums.CommandeStatus;
         total: number;
         montantPaye: number;
         statutPaiement: import(".prisma/client").$Enums.StatutPaiement;
+        clientId: number;
     })[]>;
     findById(id: number): Promise<{
         details: ({
@@ -192,11 +192,11 @@ declare class CommandeService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        clientId: number;
         status: import(".prisma/client").$Enums.CommandeStatus;
         total: number;
         montantPaye: number;
         statutPaiement: import(".prisma/client").$Enums.StatutPaiement;
+        clientId: number;
     }>;
     findByTelephone(telephone: string): Promise<({
         details: ({
@@ -255,11 +255,11 @@ declare class CommandeService {
         id: number;
         createdAt: Date;
         updatedAt: Date;
-        clientId: number;
         status: import(".prisma/client").$Enums.CommandeStatus;
         total: number;
         montantPaye: number;
         statutPaiement: import(".prisma/client").$Enums.StatutPaiement;
+        clientId: number;
     })[]>;
 }
 declare const _default: CommandeService;

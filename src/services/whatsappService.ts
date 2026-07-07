@@ -1,49 +1,64 @@
-import { Client, LocalAuth } from "whatsapp-web.js";
+import makeWASocket, {
+  DisconnectReason,
+  useMultiFileAuthState,
+  WASocket,
+} from "@whiskeysockets/baileys";
+import { Boom } from "@hapi/boom";
 import QRCode from "qrcode";
+import path from "path";
 
 class WhatsappService {
-  private client: Client;
+  private sock: WASocket | null = null;
   private isReady = false;
-  private latestQr: string | null = null; // data URL base64, exposée à l'admin
+  private latestQr: string | null = null;
+  private authFolder = path.join(process.cwd(), "auth_whatsapp");
 
   constructor() {
-    this.client = new Client({
-      authStrategy: new LocalAuth({ clientId: "commandes-bot" }),
-      puppeteer: {
-        headless: true,
-        executablePath: "/usr/bin/chromium-browser", // adapte selon le résultat de "which chromium-browser"
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      },
+    this.connect();
+  }
+
+  private async connect() {
+    const { state, saveCreds } = await useMultiFileAuthState(this.authFolder);
+
+    this.sock = makeWASocket({
+      auth: state,
+      printQRInTerminal: false,
     });
 
-    // Un seul listener "qr" : génère l'image base64 pour la page admin
-    this.client.on("qr", async (qr) => {
-      try {
-        this.latestQr = await QRCode.toDataURL(qr);
-        console.log("📱 Nouveau QR code généré, disponible via /api/whatsapp/qr");
-      } catch (err) {
-        console.error("Erreur génération QR code:", err);
+    this.sock.ev.on("creds.update", saveCreds);
+
+    this.sock.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+
+      if (qr) {
+        try {
+          this.latestQr = await QRCode.toDataURL(qr);
+          console.log("📱 Nouveau QR code généré, disponible via /api/whatsapp/qr");
+        } catch (err) {
+          console.error("Erreur génération QR code:", err);
+        }
+      }
+
+      if (connection === "open") {
+        this.isReady = true;
+        this.latestQr = null;
+        console.log("✅ WhatsApp connecté et prêt à envoyer des messages");
+      }
+
+      if (connection === "close") {
+        this.isReady = false;
+        const shouldReconnect =
+          (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+
+        console.warn("⚠️ WhatsApp déconnecté :", lastDisconnect?.error);
+
+        if (shouldReconnect) {
+          this.connect(); // reconnexion automatique
+        } else {
+          console.error("❌ Déconnecté définitivement (logout). Rescanner le QR nécessaire.");
+        }
       }
     });
-
-    // Un seul listener "ready"
-    this.client.on("ready", () => {
-      this.isReady = true;
-      this.latestQr = null; // plus besoin une fois connecté
-      console.log("✅ WhatsApp connecté et prêt à envoyer des messages");
-    });
-
-    this.client.on("disconnected", (reason) => {
-      this.isReady = false;
-      console.warn("⚠️ WhatsApp déconnecté :", reason);
-    });
-
-    this.client.on("auth_failure", (msg) => {
-      this.isReady = false;
-      console.error("❌ Échec d'authentification WhatsApp :", msg);
-    });
-
-    this.client.initialize();
   }
 
   /** QR code courant (data URL base64), à afficher côté admin tant que non connecté. */
@@ -56,34 +71,39 @@ class WhatsappService {
     return { connected: this.isReady };
   }
 
-  /** Convertit un numéro local/international en identifiant WhatsApp (ex: 221771234567@c.us) */
+  /** Convertit un numéro local/international en identifiant WhatsApp (ex: 221771234567@s.whatsapp.net) */
   private toWhatsappNumber(telephone: string): string {
-    let digits = telephone.replace(/[^0-9]/g, ""); // garde uniquement les chiffres
+    let digits = telephone.replace(/[^0-9]/g, "");
     if (!digits.startsWith("221")) {
-      digits = `221${digits.replace(/^0+/, "")}`; // ajoute l'indicatif Sénégal par défaut
+      digits = `221${digits.replace(/^0+/, "")}`;
     }
-    return digits; // ex: "221771234567", sans "+", tel qu'attendu par whatsapp-web.js
+    return `${digits}@s.whatsapp.net`; // format attendu par Baileys
   }
 
-  async sendMessage(telephone: string, message: string): Promise<boolean> {
-    if (!this.isReady) {
-      console.warn("WhatsApp pas encore prêt (QR non scanné ou déconnecté) — message non envoyé");
-      return false;
-    }
-    try {
-      const number = this.toWhatsappNumber(telephone);
-      const numberId = await this.client.getNumberId(number);
-      if (!numberId) {
-        console.warn(`Le numéro ${telephone} ne semble pas être sur WhatsApp`);
-        return false;
-      }
-      await this.client.sendMessage(numberId._serialized, message);
-      return true;
-    } catch (err) {
-      console.error("Erreur envoi WhatsApp:", err);
-      return false;
-    }
+ async sendMessage(telephone: string, message: string): Promise<boolean> {
+  if (!this.isReady || !this.sock) {
+    console.warn("WhatsApp pas encore prêt (QR non scanné ou déconnecté) — message non envoyé");
+    return false;
   }
+  try {
+    const jid = this.toWhatsappNumber(telephone);
+
+    // Vérifie que le numéro existe sur WhatsApp
+    const results = await this.sock.onWhatsApp(jid);
+    const exists = results && results.length > 0 && results[0].exists;
+
+    if (!exists) {
+      console.warn(`Le numéro ${telephone} ne semble pas être sur WhatsApp`);
+      return false;
+    }
+
+    await this.sock.sendMessage(jid, { text: message });
+    return true;
+  } catch (err) {
+    console.error("Erreur envoi WhatsApp:", err);
+    return false;
+  }
+}
 }
 
 export default new WhatsappService();

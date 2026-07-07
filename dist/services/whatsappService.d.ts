@@ -1,8 +1,10 @@
 declare class WhatsappService {
-    private client;
+    private sock;
     private isReady;
     private latestQr;
+    private authFolder;
     constructor();
+    private connect;
     getQrCode(): string | null;
     getStatus(): {
         connected: boolean;

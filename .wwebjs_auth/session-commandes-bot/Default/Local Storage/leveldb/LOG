@@ -1,2 +1,5 @@
 2026/07/07-20:14:36.892 891af Creating DB /home/rama-seck/Documents/Projet_personnel/projetAziz/Ndar_ravitaillment/gie-backend/.wwebjs_auth/session-commandes-bot/Default/Local Storage/leveldb since it was missing.
 2026/07/07-20:14:36.906 891af Reusing MANIFEST /home/rama-seck/Documents/Projet_personnel/projetAziz/Ndar_ravitaillment/gie-backend/.wwebjs_auth/session-commandes-bot/Default/Local Storage/leveldb/MANIFEST-000001
+2026/07/07-21:53:11.673 891b1 Level-0 table #5: started
+2026/07/07-21:53:11.680 891b1 Level-0 table #5: 20893 bytes OK
+2026/07/07-21:53:11.683 891b1 Delete type=0 #3
