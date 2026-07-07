@@ -1,27 +1,35 @@
 import { Client, LocalAuth } from "whatsapp-web.js";
-import qrcode from "qrcode-terminal";
+import QRCode from "qrcode";
 
 class WhatsappService {
   private client: Client;
   private isReady = false;
+  private latestQr: string | null = null; // data URL base64, exposée à l'admin
 
   constructor() {
-   this.client = new Client({
-  authStrategy: new LocalAuth({ clientId: "commandes-bot" }),
-  puppeteer: {
-    headless: true,
-    executablePath: "/usr/bin/chromium-browser", // remplace par le chemin exact trouvé avec "which"
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  },
-});
-
-    this.client.on("qr", (qr) => {
-      console.log("📱 Scanne ce QR code avec WhatsApp > Appareils liés :");
-      qrcode.generate(qr, { small: true });
+    this.client = new Client({
+      authStrategy: new LocalAuth({ clientId: "commandes-bot" }),
+      puppeteer: {
+        headless: true,
+        executablePath: "/usr/bin/chromium-browser", // adapte selon le résultat de "which chromium-browser"
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      },
     });
 
+    // Un seul listener "qr" : génère l'image base64 pour la page admin
+    this.client.on("qr", async (qr) => {
+      try {
+        this.latestQr = await QRCode.toDataURL(qr);
+        console.log("📱 Nouveau QR code généré, disponible via /api/whatsapp/qr");
+      } catch (err) {
+        console.error("Erreur génération QR code:", err);
+      }
+    });
+
+    // Un seul listener "ready"
     this.client.on("ready", () => {
       this.isReady = true;
+      this.latestQr = null; // plus besoin une fois connecté
       console.log("✅ WhatsApp connecté et prêt à envoyer des messages");
     });
 
@@ -30,16 +38,31 @@ class WhatsappService {
       console.warn("⚠️ WhatsApp déconnecté :", reason);
     });
 
+    this.client.on("auth_failure", (msg) => {
+      this.isReady = false;
+      console.error("❌ Échec d'authentification WhatsApp :", msg);
+    });
+
     this.client.initialize();
+  }
+
+  /** QR code courant (data URL base64), à afficher côté admin tant que non connecté. */
+  getQrCode(): string | null {
+    return this.latestQr;
+  }
+
+  /** Statut de connexion, pour affichage côté admin. */
+  getStatus(): { connected: boolean } {
+    return { connected: this.isReady };
   }
 
   /** Convertit un numéro local/international en identifiant WhatsApp (ex: 221771234567@c.us) */
   private toWhatsappNumber(telephone: string): string {
-    let digits = telephone.replace(/[^0-9]/g, "");
+    let digits = telephone.replace(/[^0-9]/g, ""); // garde uniquement les chiffres
     if (!digits.startsWith("221")) {
-      digits = `221${digits.replace(/^0+/, "")}`; // indicatif Sénégal par défaut
+      digits = `221${digits.replace(/^0+/, "")}`; // ajoute l'indicatif Sénégal par défaut
     }
-  return telephone.replace(/^\+/, ""); // whatsapp-web.js attend "221771234567", sans le +
+    return digits; // ex: "221771234567", sans "+", tel qu'attendu par whatsapp-web.js
   }
 
   async sendMessage(telephone: string, message: string): Promise<boolean> {

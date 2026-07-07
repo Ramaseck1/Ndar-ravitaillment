@@ -3,6 +3,8 @@ import CommandeController from "../controllers/commandeController";
 import { authenticate } from "../middleware/auth";
 import PaiementController from "../controllers/paiementController";
 import FactureController from "../controllers/factureController";
+import whatsappService from "../services/whatsappService";
+
 
 
 const router = Router();
@@ -31,6 +33,14 @@ router.get("/client/:telephone/dettes", authenticate, PaiementController.getDett
 // Facture PDF
 router.get("/:id/facture", authenticate, FactureController.generer);
 
+
+router.get("/whatsapp/qr", authenticate, (req, res) => {
+  res.json({ qr: whatsappService.getQrCode() });
+});
+
+router.get("/whatsapp/status", authenticate, (req, res) => {
+  res.json(whatsappService.getStatus());
+});
 
 
 export default router;

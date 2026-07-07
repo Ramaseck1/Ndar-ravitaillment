@@ -1,7 +1,12 @@
 declare class WhatsappService {
     private client;
     private isReady;
+    private latestQr;
     constructor();
+    getQrCode(): string | null;
+    getStatus(): {
+        connected: boolean;
+    };
     private toWhatsappNumber;
     sendMessage(telephone: string, message: string): Promise<boolean>;
 }

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = require("../prisma");
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
 class AuthService {
@@ -15,7 +15,7 @@ class AuthService {
         if (!user) {
             throw new Error("Utilisateur introuvable");
         }
-        const isValid = await bcrypt_1.default.compare(password, user.password);
+        const isValid = await bcryptjs_1.default.compare(password, user.password);
         if (!isValid) {
             throw new Error("Mot de passe incorrect");
         }
@@ -33,7 +33,7 @@ class AuthService {
         if (existingUser) {
             throw new Error("Un utilisateur avec cet email existe déjà");
         }
-        const hashedPassword = await bcrypt_1.default.hash(password, 10);
+        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         const newAdmin = await prisma_1.prisma.user.create({
             data: {
                 nom,
