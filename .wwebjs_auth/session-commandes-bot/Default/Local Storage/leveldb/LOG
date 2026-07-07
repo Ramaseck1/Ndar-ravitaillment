@@ -1,0 +1,14 @@
+2026/07/07-19:19:44.948 327d9 Reusing MANIFEST /home/rama-seck/Documents/Projet_personnel/projetAziz/Ndar_ravitaillment/gie-backend/.wwebjs_auth/session-commandes-bot/Default/Local Storage/leveldb/MANIFEST-000001
+2026/07/07-19:19:44.954 327d9 Recovering log #10
+2026/07/07-19:19:44.955 327d9 Reusing old log /home/rama-seck/Documents/Projet_personnel/projetAziz/Ndar_ravitaillment/gie-backend/.wwebjs_auth/session-commandes-bot/Default/Local Storage/leveldb/000010.log 
+2026/07/07-19:20:44.960 327db Level-0 table #13: started
+2026/07/07-19:20:44.962 327db Level-0 table #13: 15405 bytes OK
+2026/07/07-19:20:44.964 327db Delete type=0 #10
+2026/07/07-19:20:44.967 327db Compacting 4@0 + 0@1 files
+2026/07/07-19:20:44.969 327db Generated table #14@0: 89 keys, 12202 bytes
+2026/07/07-19:20:44.969 327db Compacted 4@0 + 0@1 files => 12202 bytes
+2026/07/07-19:20:44.970 327db compacted to: files[ 0 1 0 0 0 0 0 ]
+2026/07/07-19:20:44.971 327db Delete type=2 #9
+2026/07/07-19:20:44.971 327db Delete type=2 #3
+2026/07/07-19:20:44.971 327db Delete type=2 #6
+2026/07/07-19:20:44.971 327db Delete type=2 #13

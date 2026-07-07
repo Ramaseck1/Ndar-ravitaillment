@@ -1,0 +1,1 @@
+{"version":3,"file":"factureController.d.ts","sourceRoot":"","sources":["../../src/controllers/factureController.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAG5C,cAAM,iBAAiB;IACf,OAAO,CAAC,GAAG,EAAE,OAAO,EAAE,GAAG,EAAE,QAAQ,GAAG,OAAO,CAAC,QAAQ,GAAG,IAAI,CAAC;CAcrE;;AAED,wBAAuC"}

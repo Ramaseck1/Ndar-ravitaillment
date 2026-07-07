@@ -1,0 +1,1607 @@
+openapi: 3.0.0
+
+info:
+  title: N_Ravitaillement API
+  version: 1.0.0
+  description: API de gestion de kits de ravitaillement — Admin & Client
+
+servers:
+  - url: http://localhost:3000/api
+    description: Serveur local
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    # ─── Auth ────────────────────────────────────────────────────
+    LoginBody:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@example.com
+        password:
+          type: string
+          format: password
+          example: "secret123"
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+
+    CreateAdminBody:
+      type: object
+      required: [nom, prenom, email, password]
+      properties:
+        nom:
+          type: string
+          example: Diallo
+        prenom:
+          type: string
+          example: Mamadou
+        email:
+          type: string
+          format: email
+          example: mamadou@example.com
+        password:
+          type: string
+          format: password
+          example: "secret123"
+
+    # ─── Catégorie ───────────────────────────────────────────────
+    CreateCategorieBody:
+      type: object
+      required: [libelle]
+      properties:
+        libelle:
+          type: string
+          example: "Céréales"
+        image:
+          type: string
+          format: binary
+          description: "Photo de la catégorie (multipart/form-data, optionnel)"
+
+    Categorie:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        libelle:
+          type: string
+          example: "Céréales"
+        image:
+          type: string
+          nullable: true
+          example: "https://res.cloudinary.com/.../categories/cereales.jpg"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Produit ─────────────────────────────────────────────────
+    CreateProduitBody:
+      type: object
+      required: [nom, prix, categorieId, quantite]
+      properties:
+        nom:
+          type: string
+          example: "Riz basmati 5 kg"
+        description:
+          type: string
+          example: "Riz long grain de qualité supérieure"
+        prix:
+          type: number
+          format: float
+          example: 4500
+        quantite:
+          type: integer
+          example: 100
+          description: "Stock disponible"
+        categorieId:
+          type: integer
+          example: 1
+        image:
+          type: string
+          format: binary
+          description: "Photo du produit (multipart/form-data, optionnel)"
+
+    Produit:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nom:
+          type: string
+          example: "Riz basmati 5 kg"
+        description:
+          type: string
+          example: "Riz long grain de qualité supérieure"
+        prix:
+          type: number
+          example: 4500
+        quantite:
+          type: integer
+          example: 100
+          description: "Stock disponible"
+        image:
+          type: string
+          nullable: true
+          example: "https://res.cloudinary.com/.../produits/riz.jpg"
+        categorieId:
+          type: integer
+          example: 1
+
+    # ─── Kit ─────────────────────────────────────────────────────
+    CreateKitBody:
+      type: object
+      required: [nom, prix, quantite, categorieId]
+      description: >
+        Création du kit seul, sans composition.
+        La composition (KitProduitDetail) s'ajoute ensuite
+        via POST /kits/details.
+      properties:
+        nom:
+          type: string
+          example: "Kit Ramadan Essentiel"
+        description:
+          type: string
+          example: "Kit complet pour le mois de Ramadan"
+        prix:
+          type: number
+          format: float
+          example: 25000
+        type:
+          type: string
+          enum: [COMPLET, DEMI, QUART]
+          example: "PARTIELLEMENT_PAYEE"
+        categorieId:
+          type: integer
+          example: 2
+          description: "Catégorie à laquelle appartient ce kit"
+        quantite:
+          type: integer
+          example: 50
+          description: "Stock disponible du kit"
+        image:
+          type: string
+          format: binary
+          description: "Photo de groupe du kit (optionnel)"
+
+    UpdateKitBody:
+      type: object
+      description: "Tous les champs sont optionnels — seuls ceux fournis sont mis à jour"
+      properties:
+        nom:
+          type: string
+          example: "Kit Ramadan Essentiel"
+        description:
+          type: string
+          example: "Kit complet pour le mois de Ramadan"
+        prix:
+          type: number
+          format: float
+          example: 25000
+        quantite:
+          type: integer
+          example: 50
+        categorieId:
+          type: integer
+          example: 2
+        image:
+          type: string
+          format: binary
+          description: "Nouvelle photo de groupe du kit (optionnel)"
+
+    KitProduitDetail:
+      type: object
+      description: "Un élément propre à un kit — n'existe pas dans le catalogue Produit"
+      properties:
+        id:
+          type: integer
+          example: 10
+        kitId:
+          type: integer
+          example: 2
+        nom:
+          type: string
+          example: "Riz"
+        description:
+          type: string
+          nullable: true
+          example: "Riz blanc long grain"
+        prix:
+          type: number
+          example: 700
+        quantite:
+          type: integer
+          example: 1
+        image:
+          type: string
+          nullable: true
+          example: "https://res.cloudinary.com/.../kits/details/riz.jpg"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddKitDetailBody:
+      type: object
+      required: [kitId, nom, prix, quantite]
+      description: >
+        Ajoute un élément de composition à un kit déjà existant.
+        Envoi en multipart/form-data.
+      properties:
+        kitId:
+          type: integer
+          example: 2
+          description: "ID du kit auquel rattacher cet élément"
+        nom:
+          type: string
+          example: "Riz"
+        description:
+          type: string
+          example: "Riz blanc long grain"
+        prix:
+          type: number
+          format: float
+          example: 700
+        quantite:
+          type: integer
+          example: 1
+        image:
+          type: string
+          format: binary
+          description: "Photo de cet élément (optionnel)"
+
+    UpdateKitDetailBody:
+      type: object
+      description: "Tous les champs sont optionnels — seuls ceux fournis sont mis à jour"
+      properties:
+        nom:
+          type: string
+          example: "Riz"
+        description:
+          type: string
+          example: "Riz blanc long grain"
+        prix:
+          type: number
+          format: float
+          example: 750
+        quantite:
+          type: integer
+          example: 2
+        image:
+          type: string
+          format: binary
+          description: "Nouvelle photo (optionnel)"
+
+    KitResponse:
+      type: object
+      description: "Kit avec la liste complète de ses éléments de composition"
+      properties:
+        id:
+          type: integer
+          example: 2
+        nom:
+          type: string
+          example: "Kit Ramadan Essentiel"
+        description:
+          type: string
+          example: "Kit complet pour le mois de Ramadan"
+        prix:
+          type: number
+          example: 25000
+        quantite:
+          type: integer
+          example: 50
+          description: "Stock disponible du kit"
+        categorieId:
+          type: integer
+          example: 2
+        categorie:
+          $ref: "#/components/schemas/Categorie"
+        image:
+          type: string
+          nullable: true
+          example: "https://res.cloudinary.com/.../kits/kit-ramadan.jpg"
+          description: "Photo de groupe du kit"
+        details:
+          type: array
+          description: "Liste des éléments qui composent le kit"
+          items:
+            $ref: "#/components/schemas/KitProduitDetail"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Commande ────────────────────────────────────────────────
+    CommandeItemBody:
+      type: object
+      description: >
+        Chaque item doit contenir soit `produitId` soit `kitId` (pas les deux).
+        La quantité commandée est vérifiée automatiquement contre le stock
+        disponible du produit ou du kit. Le stock est décrémenté à la validation.
+    oneOf:
+    - required: [produitId]
+    - required: [kitId]
+      properties:
+        produitId:
+          type: integer
+          example: 1
+          description: "ID du produit (exclusif avec kitId)"
+        kitId:
+          type: integer
+          nullable: true
+          description: "ID du kit (exclusif avec produitId)"
+        quantite:
+          type: integer
+          minimum: 1
+          example: 2
+          description: "Quantité souhaitée (vérifiée contre le stock disponible)"
+
+    CreateCommandeBody:
+      type: object
+      required: [nom, prenom, telephone, items]
+      properties:
+        nom:
+          type: string
+          example: "Ndiaye"
+        prenom:
+          type: string
+          example: "Fatou"
+        telephone:
+          type: string
+          example: "771234567"
+        items:
+          type: array
+          minItems: 1
+          description: "Liste des produits et/ou kits commandés"
+          items:
+            $ref: "#/components/schemas/CommandeItemBody"
+          example:
+            - produitId: 1
+              quantite: 3
+            - kitId: 2
+              quantite: 1
+
+    CommandeItemResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        commandeId:
+          type: integer
+        produitId:
+          type: integer
+          nullable: true
+        kitId:
+          type: integer
+          nullable: true
+        quantite:
+          type: integer
+        prix:
+          type: number
+        produit:
+          $ref: "#/components/schemas/Produit"
+          nullable: true
+        kit:
+          $ref: "#/components/schemas/KitResponse"
+          nullable: true
+
+    CommandeResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        clientId:
+          type: integer
+          example: 3
+        status:
+          type: string
+          enum: [EN_ATTENTE, LIVREE]
+          example: "EN_ATTENTE"
+        total:
+          type: number
+          example: 38500
+        montantPaye:
+          type: number
+          example: 15000
+          description: "Montant total déjà réglé par le client"
+        statutPaiement:
+          type: string
+          enum: [NON_PAYEE, PARTIELLEMENT_PAYEE, PAYEE]
+          example: "PARTIELLEMENT_PAYEE"
+        client:
+          type: object
+          properties:
+            id:
+              type: integer
+            nom:
+              type: string
+            prenom:
+              type: string
+            telephone:
+              type: string
+        details:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommandeItemResponse"
+        paiements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Paiement"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Paiements / Dettes ────────────────────────────────────
+    Paiement:
+      type: object
+      description: "Un versement effectué par le client sur une commande"
+      properties:
+        id:
+          type: integer
+          example: 1
+        commandeId:
+          type: integer
+          example: 5
+        montant:
+          type: number
+          example: 5000
+        methode:
+          type: string
+          nullable: true
+          example: "Orange Money"
+          description: "Moyen de paiement utilisé (Espèces, Orange Money, Wave, etc.)"
+        note:
+          type: string
+          nullable: true
+          example: "Premier versement"
+        createdAt:
+          type: string
+          format: date-time
+
+    AddPaiementBody:
+      type: object
+      required: [montant]
+      description: >
+        Enregistre un versement sur une commande.
+        Le montant ne peut pas dépasser le solde restant à payer.
+      properties:
+        montant:
+          type: number
+          format: float
+          example: 5000
+        methode:
+          type: string
+          example: "Orange Money"
+        note:
+          type: string
+          example: "Premier versement"
+
+    DetteResponse:
+      type: object
+      description: "État de la dette pour une commande précise"
+      properties:
+        commandeId:
+          type: integer
+          example: 5
+        client:
+          $ref: "#/components/schemas/Client"
+        total:
+          type: number
+          example: 12500
+        montantPaye:
+          type: number
+          example: 5000
+        montantRestant:
+          type: number
+          example: 7500
+        statutPaiement:
+          type: string
+          enum: [NON_PAYEE, PARTIELLEMENT_PAYEE, PAYEE]
+          example: "PARTIELLEMENT_PAYEE"
+        paiements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Paiement"
+
+    DetteResumeItem:
+      type: object
+      description: "Résumé d'une commande impayée (utilisé dans les listes de dettes)"
+      properties:
+        commandeId:
+          type: integer
+          example: 5
+        total:
+          type: number
+          example: 12500
+        montantPaye:
+          type: number
+          example: 5000
+        montantRestant:
+          type: number
+          example: 7500
+        statutPaiement:
+          type: string
+          enum: [NON_PAYEE, PARTIELLEMENT_PAYEE, PAYEE]
+          example: "PARTIELLEMENT_PAYEE"
+        createdAt:
+          type: string
+          format: date-time
+
+    DettesClientResponse:
+      type: object
+      description: "Toutes les dettes d'un client identifié par son téléphone"
+      properties:
+        telephone:
+          type: string
+          example: "771234567"
+        nombreCommandesImpayees:
+          type: integer
+          example: 2
+        montantTotalDu:
+          type: number
+          example: 15000
+        commandes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetteResumeItem"
+
+    DetteGlobaleItem:
+      type: object
+      description: "Vue admin globale — une commande impayée avec son client"
+      properties:
+        commandeId:
+          type: integer
+          example: 5
+        client:
+          $ref: "#/components/schemas/Client"
+        total:
+          type: number
+          example: 12500
+        montantPaye:
+          type: number
+          example: 5000
+        montantRestant:
+          type: number
+          example: 7500
+        statutPaiement:
+          type: string
+          enum: [NON_PAYEE, PARTIELLEMENT_PAYEE, PAYEE]
+          example: "PARTIELLEMENT_PAYEE"
+        createdAt:
+          type: string
+          format: date-time
+
+    # ─── Divers ──────────────────────────────────────────────────
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        prenom:
+          type: string
+        telephone:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        nom:
+          type: string
+        prenom:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Stock insuffisant pour \"Riz basmati 5 kg\" (disponible : 3)"
+
+# ─────────────────────────────────────────────────────────────────
+paths:
+
+  # ── Auth ─────────────────────────────────────────────────────
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Connexion utilisateur
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Token JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/create-admin:
+    post:
+      tags: [Auth]
+      summary: Créer un admin (réservé SUPERADMIN)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminBody"
+      responses:
+        "201":
+          description: Admin créé
+        "400":
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Catégories ───────────────────────────────────────────────
+  /categories:
+    get:
+      tags: [Catégories]
+      summary: Liste de toutes les catégories
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Categorie"
+
+    post:
+      tags: [Catégories]
+      summary: Créer une catégorie (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreateCategorieBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "201":
+          description: Catégorie créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Categorie"
+        "400":
+          description: Libellé déjà existant ou données invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /categories/{id}:
+    put:
+      tags: [Catégories]
+      summary: Modifier une catégorie (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreateCategorieBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "200":
+          description: Catégorie mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Categorie"
+        "400":
+          description: Erreur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Catégories]
+      summary: Supprimer une catégorie (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Catégorie supprimée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Catégorie supprimée"
+        "400":
+          description: Catégorie introuvable ou liée à des produits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Produits ─────────────────────────────────────────────────
+  /produits:
+    get:
+      tags: [Produits]
+      summary: Liste de tous les produits
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Produit"
+
+    post:
+      tags: [Produits]
+      summary: Créer un produit (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreateProduitBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "201":
+          description: Produit créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Produit"
+        "400":
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /produits/tri:
+    get:
+      tags: [Produits]
+      summary: Produits triés par prix
+      description: >
+        Retourne la liste de tous les produits triés par prix croissant (`prix_asc`, défaut)
+        ou décroissant (`prix_desc`).
+      security: []
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [prix_asc, prix_desc]
+            default: prix_asc
+          example: prix_asc
+      responses:
+        "200":
+          description: Liste triée de produits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Produit"
+        "400":
+          description: Erreur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /produits/meilleurs-ventes:
+    get:
+      tags: [Produits]
+      summary: Produits les plus vendus
+      description: >
+        Retourne la liste des produits classés par quantité totale vendue
+        (ventes directes uniquement — les kits ont leur propre composition
+        indépendante du catalogue Produit).
+        Le champ `totalVendu` indique la quantité cumulée.
+      security: []
+      responses:
+        "200":
+          description: Produits classés par volume de ventes décroissant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Produit"
+                    - type: object
+                      properties:
+                        totalVendu:
+                          type: integer
+                          description: "Quantité totale vendue"
+                          example: 42
+        "500":
+          description: Erreur serveur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /produits/{id}:
+    get:
+      tags: [Produits]
+      summary: Détail d'un produit
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Produit"
+        "404":
+          description: Introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags: [Produits]
+      summary: Modifier un produit (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreateProduitBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "200":
+          description: Produit mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Produit"
+        "400":
+          description: Erreur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Produits]
+      summary: Supprimer un produit (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Supprimé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Produit supprimé"
+        "400":
+          description: Erreur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Kits ─────────────────────────────────────────────────────
+  /kits:
+    get:
+      tags: [Kits]
+      summary: Liste de tous les kits avec leur composition
+      security: []
+      responses:
+        "200":
+          description: >
+            Chaque kit inclut un tableau `details` contenant
+            les éléments (nom, image, description, prix, quantité)
+            qui composent ce kit.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KitResponse"
+
+    post:
+      tags: [Kits]
+      summary: Créer un kit (admin) — sans composition
+      description: >
+        Crée uniquement le kit (nom, prix, quantité, categorieId, image).
+        Le kit est créé vide (`details: []`).
+        Pour ajouter sa composition, utiliser ensuite
+        `POST /kits/details` autant de fois que nécessaire.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreateKitBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "201":
+          description: Kit créé (sans composition)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KitResponse"
+        "400":
+          description: Données invalides ou catégorie introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /kits/{id}:
+    get:
+      tags: [Kits]
+      summary: Détail d'un kit avec sa composition
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Kit avec tableau `details` de sa composition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KitResponse"
+        "404":
+          description: Kit introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags: [Kits]
+      summary: Modifier les informations générales du kit (admin)
+      description: >
+        Modifie uniquement les champs propres au kit (nom, description,
+        prix, quantité, categorieId, image). Pour modifier sa composition,
+        utiliser les endpoints `/kits/details/{id}`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UpdateKitBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "200":
+          description: Kit mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KitResponse"
+        "400":
+          description: Erreur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Kit introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Kits]
+      summary: Supprimer un kit (admin)
+      description: >
+        Supprime le kit ainsi que tous ses éléments de composition
+        (KitProduitDetail) via cascade.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Kit supprimé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Kit supprimé avec succès"
+        "404":
+          description: Kit introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Composition des kits (KitProduitDetail) ─────────────────
+  /kits/details:
+    post:
+      tags: [Kits - Composition]
+      summary: Ajouter un élément de composition à un kit existant (admin)
+      description: >
+        Crée un `KitProduitDetail` propre au kit désigné par `kitId`.
+        Cet élément (nom, description, prix, quantité, image) est
+        indépendant du catalogue `Produit` : il n'existe que pour ce kit.
+        Envoi en `multipart/form-data`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/AddKitDetailBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "201":
+          description: Élément de composition créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KitProduitDetail"
+        "400":
+          description: Données invalides ou kit introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /kits/details/{id}:
+    put:
+      tags: [Kits - Composition]
+      summary: Modifier un élément de composition (admin)
+      description: >
+        Modifie un `KitProduitDetail` existant, identifié par son propre `id`
+        (pas celui du kit). Envoi en `multipart/form-data`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "ID du KitProduitDetail à modifier"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UpdateKitDetailBody"
+            encoding:
+              image:
+                contentType: image/png, image/jpeg
+      responses:
+        "200":
+          description: Élément mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KitProduitDetail"
+        "400":
+          description: Élément introuvable ou données invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Kits - Composition]
+      summary: Supprimer un élément de composition (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "ID du KitProduitDetail à supprimer"
+      responses:
+        "200":
+          description: Élément supprimé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Élément supprimé avec succès"
+        "400":
+          description: Élément introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Clients ──────────────────────────────────────────────────
+  /clients:
+    get:
+      tags: [Clients]
+      summary: Liste de tous les clients (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+
+  # ── Commandes ────────────────────────────────────────────────
+  /commandes:
+    get:
+      tags: [Commandes]
+      summary: Liste de toutes les commandes (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommandeResponse"
+
+    post:
+      tags: [Commandes]
+      summary: Passer une commande (public)
+      description: >
+        Un client passe une commande sans avoir de compte.
+        Le total est calculé automatiquement côté serveur.
+        Le stock de chaque produit ou kit est vérifié puis décrémenté automatiquement.
+        La commande est créée avec `montantPaye: 0` et `statutPaiement: NON_PAYEE`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommandeBody"
+            examples:
+              produits_only:
+                summary: Commande de produits uniquement
+                value:
+                  nom: "Ndiaye"
+                  prenom: "Fatou"
+                  telephone: "771234567"
+                  items:
+                    - produitId: 1
+                      quantite: 3
+                    - produitId: 4
+                      quantite: 1
+              kits_only:
+                summary: Commande de kits uniquement
+                value:
+                  nom: "Diallo"
+                  prenom: "Ibrahima"
+                  telephone: "781234567"
+                  items:
+                    - kitId: 2
+                      quantite: 1
+              mixed:
+                summary: Commande mixte (produits + kits)
+                value:
+                  nom: "Sow"
+                  prenom: "Aïssatou"
+                  telephone: "701234567"
+                  items:
+                    - produitId: 1
+                      quantite: 2
+                    - kitId: 2
+                      quantite: 1
+      responses:
+        "201":
+          description: Commande créée avec succès, stock mis à jour automatiquement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandeResponse"
+        "400":
+          description: >
+            Données invalides, produit/kit introuvable,
+            ou stock insuffisant pour honorer la commande
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /commandes/{id}:
+    get:
+      tags: [Commandes]
+      summary: Détail d'une commande (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Détail complet de la commande avec client et articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandeResponse"
+        "404":
+          description: Commande introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /commandes/{id}/livrer:
+    patch:
+      tags: [Commandes]
+      summary: Marquer une commande comme livrée (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Commande mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandeResponse"
+        "400":
+          description: Erreur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /commandes/client/{telephone}:
+    get:
+      tags: [Commandes]
+      summary: Commandes d'un client par numéro de téléphone
+      description: >
+        Permet à un client de retrouver ses commandes en saisissant
+        son numéro de téléphone. Aucune authentification requise.
+      security: []
+      parameters:
+        - name: telephone
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "771234567"
+      responses:
+        "200":
+          description: Liste des commandes du client
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommandeResponse"
+        "500":
+          description: Erreur serveur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Paiements / Dettes ───────────────────────────────────────
+  /commandes/{id}/paiements:
+    post:
+      tags: [Paiements & Dettes]
+      summary: Enregistrer un paiement sur une commande (admin)
+      description: >
+        Ajoute un versement à l'historique des paiements de la commande.
+        Le `montantPaye` et le `statutPaiement` de la commande sont
+        recalculés automatiquement. Le montant ne peut pas dépasser
+        le solde restant à payer.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "ID de la commande"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddPaiementBody"
+      responses:
+        "201":
+          description: Paiement enregistré, commande mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandeResponse"
+        "400":
+          description: >
+            Montant invalide, commande introuvable,
+            ou montant supérieur au solde restant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /commandes/{id}/dette:
+    get:
+      tags: [Paiements & Dettes]
+      summary: État de la dette d'une commande précise (admin)
+      description: >
+        Retourne le total, le montant payé, le montant restant,
+        le statut de paiement et l'historique des paiements
+        pour une commande donnée.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "ID de la commande"
+      responses:
+        "200":
+          description: Détail de la dette
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetteResponse"
+        "404":
+          description: Commande introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /commandes/dettes/toutes:
+    get:
+      tags: [Paiements & Dettes]
+      summary: Liste globale de toutes les commandes impayées (admin)
+      description: >
+        Vue d'ensemble pour l'admin : toutes les commandes dont le
+        statut de paiement est `NON_PAYEE` ou `PARTIELLEMENT_PAYEE`,
+        avec le client associé et le montant restant.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste des commandes impayées
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DetteGlobaleItem"
+        "500":
+          description: Erreur serveur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /commandes/client/{telephone}/dettes:
+    get:
+      tags: [Paiements & Dettes]
+      summary: Toutes les dettes d'un client par téléphone (admin)
+      description: >
+        Retourne toutes les commandes impayées ou partiellement payées
+        d'un client identifié par son numéro de téléphone, ainsi que
+        le montant total dû cumulé.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: telephone
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "771234567"
+      responses:
+        "200":
+          description: Dettes du client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DettesClientResponse"
+        "500":
+          description: Erreur serveur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Factures ─────────────────────────────────────────────────
+  /commandes/{id}/facture:
+    get:
+      tags: [Factures]
+      summary: Générer et télécharger la facture PDF d'une commande (admin)
+      description: >
+        Génère un document PDF pour la commande.
+
+        - `type=facture` (défaut) : document récapitulatif incluant
+          le total, le montant payé, le montant restant et l'historique
+          des paiements — à utiliser après un paiement.
+        - `type=proforma` : document de type "bon à payer", qui met
+          en avant le montant restant dû, pour réclamer le paiement au client.
+
+        La réponse est un fichier binaire `application/pdf`
+        (pas un objet JSON).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: "ID de la commande"
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [facture, proforma]
+            default: facture
+          description: >
+            `facture` pour un document définitif après paiement,
+            `proforma` pour un bon à payer réclamant le solde restant
+      responses:
+        "200":
+          description: Fichier PDF de la facture ou du bon à payer
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Commande introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

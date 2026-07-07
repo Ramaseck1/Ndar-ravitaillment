@@ -1,0 +1,9 @@
+{
+  "files.exclude": {
+    "node_modules": "explorerExcludedFiles",
+    "uploads/": "explorerExcludedFiles",
+    "uploads/temp/": "explorerExcludedFiles",
+    "generated/prisma": "explorerExcludedFiles",
+    ".env": "explorerExcludedFiles"
+  }
+}
