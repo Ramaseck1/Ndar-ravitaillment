@@ -17,6 +17,6 @@ router.get('/', ProduitController.findAll);
 router.post('/', authenticate, 
     upload.single("image"),
     ProduitController.create);
-router.put('/:id', authenticate, ProduitController.update);
+router.put('/:id', authenticate, upload.single("image"), ProduitController.update);
 router.delete('/:id', authenticate, ProduitController.delete);
 export default router;
